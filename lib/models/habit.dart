@@ -3,6 +3,12 @@ import 'package:isar/isar.dart';
 
 part 'habit.g.dart';
 
+@embedded
+class HabitNote {
+  late DateTime date;
+  late String note;
+}
+
 @collection
 class Habit {
   Id id = Isar.autoIncrement;
@@ -21,6 +27,9 @@ class Habit {
 
   // List of dates when the habit was completed
   List<DateTime> completedDates = [];
+
+  // List of daily notes for this specific habit
+  List<HabitNote> dailyNotes = [];
 
   @ignore
   Color get color => Color(colorValue);

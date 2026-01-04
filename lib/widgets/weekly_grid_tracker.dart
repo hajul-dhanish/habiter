@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:habiter/models/habit.dart';
 import 'package:habiter/providers/habit_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:habiter/screens/journal_screen.dart';
+import 'package:habiter/widgets/add_habit_dialog.dart';
+import 'package:habiter/widgets/habit_note_dialog.dart';
 
 class WeeklyGridTracker extends StatelessWidget {
   const WeeklyGridTracker({super.key});
@@ -93,10 +96,55 @@ class WeeklyGridTracker extends StatelessWidget {
                       children: [
                         SizedBox(
                           width: 150,
-                          child: Text(
-                            habit.title,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                            overflow: TextOverflow.ellipsis,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  habit.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              PopupMenuButton<String>(
+                                icon: const Icon(
+                                  Icons.more_vert,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
+                                padding: EdgeInsets.zero,
+                                onSelected: (value) async {
+                                  if (value == 'edit') {
+                                    final updatedHabit =
+                                        await showDialog<Habit>(
+                                          context: context,
+                                          builder: (context) =>
+                                              AddHabitDialog(habit: habit),
+                                        );
+                                    if (updatedHabit != null &&
+                                        context.mounted) {
+                                      provider.updateHabit(updatedHabit);
+                                    }
+                                  } else if (value == 'delete') {
+                                    provider.deleteHabit(habit.id);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Edit'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                         ...weekDays.map((day) {
@@ -106,66 +154,101 @@ class WeeklyGridTracker extends StatelessWidget {
                                 d.month == day.month &&
                                 d.day == day.day,
                           );
+
+                          final note = habit.dailyNotes
+                              .where(
+                                (n) =>
+                                    n.date.year == day.year &&
+                                    n.date.month == day.month &&
+                                    n.date.day == day.day,
+                              )
+                              .firstOrNull;
+
                           return Expanded(
                             child: Center(
-                              child: InkWell(
-                                onTap: () async {
-                                  final wasCompleted = habit.completedDates.any(
-                                    (d) =>
-                                        d.year == day.year &&
-                                        d.month == day.month &&
-                                        d.day == day.day,
-                                  );
-
-                                  await provider.toggleHabitCompletion(
-                                    habit.id,
-                                    day,
-                                  );
-
-                                  // If now completed and it wasn't before
-                                  if (!wasCompleted && context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Completed: ${habit.title}!',
-                                        ),
-                                        action: SnackBarAction(
-                                          label: 'Quick Note',
-                                          onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) =>
-                                                  const AddJournalEntryDialog(),
-                                            );
-                                          },
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        width: 300,
+                              child: Tooltip(
+                                message: note?.note ?? 'Long press for note',
+                                child: InkWell(
+                                  onLongPress: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => HabitNoteDialog(
+                                        habitId: habit.id,
+                                        date: day,
+                                        initialNote: note?.note ?? '',
                                       ),
                                     );
-                                  }
-                                },
-                                child: Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: isCompleted
-                                        ? Colors.black
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
+                                  },
+                                  onTap: () async {
+                                    final wasCompleted = habit.completedDates
+                                        .any(
+                                          (d) =>
+                                              d.year == day.year &&
+                                              d.month == day.month &&
+                                              d.day == day.day,
+                                        );
+
+                                    await provider.toggleHabitCompletion(
+                                      habit.id,
+                                      day,
+                                    );
+
+                                    // If now completed and it wasn't before
+                                    if (!wasCompleted && context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Completed: ${habit.title}!',
+                                          ),
+                                          action: SnackBarAction(
+                                            label: 'Quick Note',
+                                            onPressed: () {
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) =>
+                                                    const AddJournalEntryDialog(),
+                                              );
+                                            },
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                          width: 300,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
                                       color: isCompleted
                                           ? Colors.black
-                                          : Colors.grey.withOpacity(0.3),
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: isCompleted
+                                            ? Colors.black
+                                            : note != null
+                                            ? Colors.blue.withOpacity(0.5)
+                                            : Colors.grey.withOpacity(0.3),
+                                        width: note != null ? 2 : 1,
+                                      ),
                                     ),
+                                    child: isCompleted
+                                        ? const Icon(
+                                            Icons.check,
+                                            size: 16,
+                                            color: Colors.white,
+                                          )
+                                        : note != null
+                                        ? const Icon(
+                                            Icons.notes,
+                                            size: 12,
+                                            color: Colors.blue,
+                                          )
+                                        : null,
                                   ),
-                                  child: isCompleted
-                                      ? const Icon(
-                                          Icons.check,
-                                          size: 16,
-                                          color: Colors.white,
-                                        )
-                                      : null,
                                 ),
                               ),
                             ),

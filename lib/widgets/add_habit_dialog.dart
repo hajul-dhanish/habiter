@@ -2,17 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:habiter/models/habit.dart';
 
 class AddHabitDialog extends StatefulWidget {
-  const AddHabitDialog({super.key});
+  final Habit? habit;
+  const AddHabitDialog({super.key, this.habit});
 
   @override
   State<AddHabitDialog> createState() => _AddHabitDialogState();
 }
 
 class _AddHabitDialogState extends State<AddHabitDialog> {
-  final _titleController = TextEditingController();
-  String _selectedFrequency = 'Daily';
-  String _selectedDifficulty = 'Easy';
-  Color _selectedColor = Colors.blue;
+  late TextEditingController _titleController;
+  late String _selectedFrequency;
+  late String _selectedDifficulty;
+  late Color _selectedColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.habit?.title ?? '');
+    _selectedFrequency = widget.habit?.frequency ?? 'Daily';
+    _selectedDifficulty = widget.habit?.difficulty ?? 'Easy';
+    _selectedColor = widget.habit?.color ?? Colors.blue;
+  }
 
   final List<String> _frequencies = ['Daily', 'Weekly', 'Interval'];
   final List<String> _difficulties = ['Easy', 'Challenging', 'Hard'];
@@ -38,7 +48,7 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'New Habit',
+              widget.habit == null ? 'New Habit' : 'Edit Habit',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -118,14 +128,20 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
                 ElevatedButton(
                   onPressed: () {
                     if (_titleController.text.isNotEmpty) {
-                      final newHabit = Habit()
+                      final habit = widget.habit ?? Habit();
+                      habit
                         ..title = _titleController.text
                         ..frequency = _selectedFrequency
                         ..difficulty = _selectedDifficulty
-                        ..color = _selectedColor
-                        ..createdAt = DateTime.now()
-                        ..completedDates = [];
-                      Navigator.pop(context, newHabit);
+                        ..color = _selectedColor;
+
+                      if (widget.habit == null) {
+                        habit.createdAt = DateTime.now();
+                        habit.completedDates = [];
+                        habit.dailyNotes = [];
+                      }
+
+                      Navigator.pop(context, habit);
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -135,7 +151,9 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Create Habit'),
+                  child: Text(
+                    widget.habit == null ? 'Create Habit' : 'Update Habit',
+                  ),
                 ),
               ],
             ),

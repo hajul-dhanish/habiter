@@ -68,32 +68,36 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 48),
-          const Row(
-            children: [
-              Expanded(
-                child: ProgressCard(
-                  title: 'Weekly Progress',
-                  progress: 0.72,
-                  label: '72%',
-                ),
-              ),
-              SizedBox(width: 24),
-              Expanded(
-                child: ProgressCard(
-                  title: 'Monthly Goal',
-                  progress: 0.45,
-                  label: '45%',
-                ),
-              ),
-              SizedBox(width: 24),
-              Expanded(
-                child: ProgressCard(
-                  title: 'Yearly Streak',
-                  progress: 0.12,
-                  label: '12%',
-                ),
-              ),
-            ],
+          Consumer<HabitProvider>(
+            builder: (context, provider, child) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: ProgressCard(
+                      title: 'Weekly Progress',
+                      progress: provider.weeklyProgress,
+                      label: '${(provider.weeklyProgress * 100).toInt()}%',
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: ProgressCard(
+                      title: 'Monthly Goal',
+                      progress: provider.monthlyProgress,
+                      label: '${(provider.monthlyProgress * 100).toInt()}%',
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: ProgressCard(
+                      title: 'Yearly Progress',
+                      progress: provider.yearlyProgress,
+                      label: '${(provider.yearlyProgress * 100).toInt()}%',
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 48),
           Text(

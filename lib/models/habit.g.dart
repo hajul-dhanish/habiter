@@ -32,18 +32,24 @@ const HabitSchema = CollectionSchema(
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'difficulty': PropertySchema(
+    r'dailyNotes': PropertySchema(
       id: 3,
+      name: r'dailyNotes',
+      type: IsarType.objectList,
+      target: r'HabitNote',
+    ),
+    r'difficulty': PropertySchema(
+      id: 4,
       name: r'difficulty',
       type: IsarType.string,
     ),
     r'frequency': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'frequency',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'title',
       type: IsarType.string,
     )
@@ -55,7 +61,7 @@ const HabitSchema = CollectionSchema(
   idName: r'id',
   indexes: {},
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'HabitNote': HabitNoteSchema},
   getId: _habitGetId,
   getLinks: _habitGetLinks,
   attach: _habitAttach,
@@ -69,6 +75,14 @@ int _habitEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.completedDates.length * 8;
+  bytesCount += 3 + object.dailyNotes.length * 3;
+  {
+    final offsets = allOffsets[HabitNote]!;
+    for (var i = 0; i < object.dailyNotes.length; i++) {
+      final value = object.dailyNotes[i];
+      bytesCount += HabitNoteSchema.estimateSize(value, offsets, allOffsets);
+    }
+  }
   bytesCount += 3 + object.difficulty.length * 3;
   bytesCount += 3 + object.frequency.length * 3;
   bytesCount += 3 + object.title.length * 3;
@@ -84,9 +98,15 @@ void _habitSerialize(
   writer.writeLong(offsets[0], object.colorValue);
   writer.writeDateTimeList(offsets[1], object.completedDates);
   writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.difficulty);
-  writer.writeString(offsets[4], object.frequency);
-  writer.writeString(offsets[5], object.title);
+  writer.writeObjectList<HabitNote>(
+    offsets[3],
+    allOffsets,
+    HabitNoteSchema.serialize,
+    object.dailyNotes,
+  );
+  writer.writeString(offsets[4], object.difficulty);
+  writer.writeString(offsets[5], object.frequency);
+  writer.writeString(offsets[6], object.title);
 }
 
 Habit _habitDeserialize(
@@ -99,10 +119,17 @@ Habit _habitDeserialize(
   object.colorValue = reader.readLong(offsets[0]);
   object.completedDates = reader.readDateTimeList(offsets[1]) ?? [];
   object.createdAt = reader.readDateTime(offsets[2]);
-  object.difficulty = reader.readString(offsets[3]);
-  object.frequency = reader.readString(offsets[4]);
+  object.dailyNotes = reader.readObjectList<HabitNote>(
+        offsets[3],
+        HabitNoteSchema.deserialize,
+        allOffsets,
+        HabitNote(),
+      ) ??
+      [];
+  object.difficulty = reader.readString(offsets[4]);
+  object.frequency = reader.readString(offsets[5]);
   object.id = id;
-  object.title = reader.readString(offsets[5]);
+  object.title = reader.readString(offsets[6]);
   return object;
 }
 
@@ -120,10 +147,18 @@ P _habitDeserializeProp<P>(
     case 2:
       return (reader.readDateTime(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectList<HabitNote>(
+            offset,
+            HabitNoteSchema.deserialize,
+            allOffsets,
+            HabitNote(),
+          ) ??
+          []) as P;
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -463,6 +498,90 @@ extension HabitQueryFilter on QueryBuilder<Habit, Habit, QFilterCondition> {
         upper: upper,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> dailyNotesLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'dailyNotes',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> dailyNotesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'dailyNotes',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> dailyNotesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'dailyNotes',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> dailyNotesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'dailyNotes',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> dailyNotesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'dailyNotes',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> dailyNotesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'dailyNotes',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -907,7 +1026,14 @@ extension HabitQueryFilter on QueryBuilder<Habit, Habit, QFilterCondition> {
   }
 }
 
-extension HabitQueryObject on QueryBuilder<Habit, Habit, QFilterCondition> {}
+extension HabitQueryObject on QueryBuilder<Habit, Habit, QFilterCondition> {
+  QueryBuilder<Habit, Habit, QAfterFilterCondition> dailyNotesElement(
+      FilterQuery<HabitNote> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'dailyNotes');
+    });
+  }
+}
 
 extension HabitQueryLinks on QueryBuilder<Habit, Habit, QFilterCondition> {}
 
@@ -1114,6 +1240,12 @@ extension HabitQueryProperty on QueryBuilder<Habit, Habit, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Habit, List<HabitNote>, QQueryOperations> dailyNotesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'dailyNotes');
+    });
+  }
+
   QueryBuilder<Habit, String, QQueryOperations> difficultyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'difficulty');
@@ -1132,3 +1264,268 @@ extension HabitQueryProperty on QueryBuilder<Habit, Habit, QQueryProperty> {
     });
   }
 }
+
+// **************************************************************************
+// IsarEmbeddedGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const HabitNoteSchema = Schema(
+  name: r'HabitNote',
+  id: -8163648776970887065,
+  properties: {
+    r'date': PropertySchema(
+      id: 0,
+      name: r'date',
+      type: IsarType.dateTime,
+    ),
+    r'note': PropertySchema(
+      id: 1,
+      name: r'note',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _habitNoteEstimateSize,
+  serialize: _habitNoteSerialize,
+  deserialize: _habitNoteDeserialize,
+  deserializeProp: _habitNoteDeserializeProp,
+);
+
+int _habitNoteEstimateSize(
+  HabitNote object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.note.length * 3;
+  return bytesCount;
+}
+
+void _habitNoteSerialize(
+  HabitNote object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeDateTime(offsets[0], object.date);
+  writer.writeString(offsets[1], object.note);
+}
+
+HabitNote _habitNoteDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = HabitNote();
+  object.date = reader.readDateTime(offsets[0]);
+  object.note = reader.readString(offsets[1]);
+  return object;
+}
+
+P _habitNoteDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readDateTime(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension HabitNoteQueryFilter
+    on QueryBuilder<HabitNote, HabitNote, QFilterCondition> {
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> dateEqualTo(
+      DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'date',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> dateGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'date',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> dateLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'date',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> dateBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'date',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'note',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'note',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'note',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<HabitNote, HabitNote, QAfterFilterCondition> noteIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'note',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension HabitNoteQueryObject
+    on QueryBuilder<HabitNote, HabitNote, QFilterCondition> {}
