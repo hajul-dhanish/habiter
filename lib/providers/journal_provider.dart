@@ -18,6 +18,11 @@ class JournalProvider extends ChangeNotifier {
     await fetchEntries();
   }
 
+  Future<void> deleteEntry(int id) async {
+    await _databaseService.deleteJournalEntry(id);
+    await fetchEntries();
+  }
+
   Future<JournalEntry?> getEntryForDate(DateTime date) async {
     // Basic implementation: find entry for specific day
     try {

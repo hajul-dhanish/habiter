@@ -36,6 +36,11 @@ const JournalEntrySchema = CollectionSchema(
       id: 3,
       name: r'moodScore',
       type: IsarType.double,
+    ),
+    r'title': PropertySchema(
+      id: 4,
+      name: r'title',
+      type: IsarType.string,
     )
   },
   estimateSize: _journalEntryEstimateSize,
@@ -60,6 +65,7 @@ int _journalEntryEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.linkedHabitIds.length * 8;
+  bytesCount += 3 + object.title.length * 3;
   return bytesCount;
 }
 
@@ -73,6 +79,7 @@ void _journalEntrySerialize(
   writer.writeDateTime(offsets[1], object.date);
   writer.writeLongList(offsets[2], object.linkedHabitIds);
   writer.writeDouble(offsets[3], object.moodScore);
+  writer.writeString(offsets[4], object.title);
 }
 
 JournalEntry _journalEntryDeserialize(
@@ -87,6 +94,7 @@ JournalEntry _journalEntryDeserialize(
   object.id = id;
   object.linkedHabitIds = reader.readLongList(offsets[2]) ?? [];
   object.moodScore = reader.readDouble(offsets[3]);
+  object.title = reader.readString(offsets[4]);
   return object;
 }
 
@@ -105,6 +113,8 @@ P _journalEntryDeserializeProp<P>(
       return (reader.readLongList(offset) ?? []) as P;
     case 3:
       return (reader.readDouble(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -657,6 +667,140 @@ extension JournalEntryQueryFilter
       ));
     });
   }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> titleEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      titleGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> titleLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> titleBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'title',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      titleStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> titleEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> titleContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition> titleMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'title',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      titleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      titleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'title',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension JournalEntryQueryObject
@@ -700,6 +844,18 @@ extension JournalEntryQuerySortBy
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByMoodScoreDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'moodScore', Sort.desc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
     });
   }
 }
@@ -753,6 +909,18 @@ extension JournalEntryQuerySortThenBy
       return query.addSortBy(r'moodScore', Sort.desc);
     });
   }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
+    });
+  }
 }
 
 extension JournalEntryQueryWhereDistinct
@@ -780,6 +948,13 @@ extension JournalEntryQueryWhereDistinct
   QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByMoodScore() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'moodScore');
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByTitle(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
     });
   }
 }
@@ -814,6 +989,12 @@ extension JournalEntryQueryProperty
   QueryBuilder<JournalEntry, double, QQueryOperations> moodScoreProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'moodScore');
+    });
+  }
+
+  QueryBuilder<JournalEntry, String, QQueryOperations> titleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'title');
     });
   }
 }

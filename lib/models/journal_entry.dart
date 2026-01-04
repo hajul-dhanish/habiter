@@ -9,6 +9,8 @@ class JournalEntry {
   late DateTime date;
 
   late String content;
+  
+  late String title;
 
   late double moodScore; // 1 to 5 or similar
 

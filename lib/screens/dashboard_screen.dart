@@ -76,7 +76,8 @@ class DashboardScreen extends StatelessWidget {
                     child: ProgressCard(
                       title: 'Weekly Progress',
                       progress: provider.weeklyProgress,
-                      label: '${(provider.weeklyProgress * 100).toInt()}%',
+                      label:
+                          '${(provider.weeklyProgress * 100).toStringAsFixed(1)}%',
                     ),
                   ),
                   const SizedBox(width: 24),
@@ -84,7 +85,8 @@ class DashboardScreen extends StatelessWidget {
                     child: ProgressCard(
                       title: 'Monthly Goal',
                       progress: provider.monthlyProgress,
-                      label: '${(provider.monthlyProgress * 100).toInt()}%',
+                      label:
+                          '${(provider.monthlyProgress * 100).toStringAsFixed(2)}%',
                     ),
                   ),
                   const SizedBox(width: 24),
@@ -92,7 +94,8 @@ class DashboardScreen extends StatelessWidget {
                     child: ProgressCard(
                       title: 'Yearly Progress',
                       progress: provider.yearlyProgress,
-                      label: '${(provider.yearlyProgress * 100).toInt()}%',
+                      label:
+                          '${(provider.yearlyProgress * 100).toStringAsFixed(3)}%',
                     ),
                   ),
                 ],

@@ -62,7 +62,13 @@ class JournalScreen extends StatelessWidget {
                     ),
                   );
                 }
-                return ListView.builder(
+                return GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 24,
+                    mainAxisSpacing: 24,
+                    childAspectRatio: 4,
+                  ),
                   itemCount: provider.entries.length,
                   itemBuilder: (context, index) {
                     final entry = provider.entries[index];
@@ -78,49 +84,173 @@ class JournalScreen extends StatelessWidget {
   }
 
   Widget _buildJournalCard(BuildContext context, JournalEntry entry) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                DateFormat('MMMM dd, yyyy').format(entry.date),
+    return GestureDetector(
+      onTap: () => _showNoteDetails(context, entry),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  DateFormat('MMM dd').format(entry.date),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  CupertinoIcons.smiley,
+                  size: 14,
+                  color: _getMoodColor(entry.moodScore),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Text(
+                entry.title.isNotEmpty ? entry.title : 'Untitled Entry',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  height: 1.3,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNoteDetails(BuildContext context, JournalEntry entry) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Container(
+          width: 500,
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        DateFormat('MMMM dd, yyyy').format(entry.date),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        entry.title.isNotEmpty ? entry.title : 'Untitled Entry',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  _buildMoodIndicator(entry.moodScore),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 24),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Text(
+                    entry.content,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.6,
+                      color: Colors.white70,
+                    ),
+                  ),
                 ),
               ),
-              const Spacer(),
-              _buildMoodIndicator(entry.moodScore),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      CupertinoIcons.trash,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
+                    onPressed: () => _confirmDelete(context, entry),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            entry.content,
-            style: const TextStyle(height: 1.5, color: Colors.black87),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, JournalEntry entry) {
+    showDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Delete Note'),
+        content: const Text(
+          'Are you sure you want to delete this entry? This action cannot be undone.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Provider.of<JournalProvider>(
+                context,
+                listen: false,
+              ).deleteEntry(entry.id);
+              Navigator.pop(context); // Close confirmation
+              Navigator.pop(context); // Close detail view
+            },
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMoodIndicator(double score) {
-    final icons = [
-      CupertinoIcons.smiley,
-      CupertinoIcons.smiley,
-      CupertinoIcons.smiley,
-      CupertinoIcons.smiley,
-      CupertinoIcons.smiley,
-    ];
-    // Simple logic for mood colors
+  Color _getMoodColor(double score) {
     final colors = [
       Colors.red,
       Colors.orange,
@@ -128,17 +258,24 @@ class JournalScreen extends StatelessWidget {
       Colors.lightGreen,
       Colors.green,
     ];
-    int index = (score - 1).clamp(0, 4).toInt();
+    return colors[(score - 1).clamp(0, 4).toInt()];
+  }
 
-    return Row(
-      children: [
-        Icon(icons[index], color: colors[index], size: 18),
-        const SizedBox(width: 8),
-        Text(
-          'Mood: ${score.toInt()}/5',
-          style: TextStyle(color: colors[index], fontWeight: FontWeight.bold),
+  Widget _buildMoodIndicator(double score) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: _getMoodColor(score).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        'Mood: ${score.toInt()}/5',
+        style: TextStyle(
+          color: _getMoodColor(score),
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
         ),
-      ],
+      ),
     );
   }
 
@@ -159,6 +296,7 @@ class AddJournalEntryDialog extends StatefulWidget {
 
 class _AddJournalEntryDialogState extends State<AddJournalEntryDialog> {
   final _contentController = TextEditingController();
+  final _titleController = TextEditingController();
   double _moodScore = 3;
 
   @override
@@ -177,6 +315,17 @@ class _AddJournalEntryDialogState extends State<AddJournalEntryDialog> {
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _titleController,
+              maxLines: 1,
+              decoration: InputDecoration(
+                hintText: 'Title',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             TextField(
@@ -216,6 +365,7 @@ class _AddJournalEntryDialogState extends State<AddJournalEntryDialog> {
                     if (_contentController.text.isNotEmpty) {
                       final entry = JournalEntry()
                         ..date = DateTime.now()
+                        ..title = _titleController.text
                         ..content = _contentController.text
                         ..moodScore = _moodScore;
                       Provider.of<JournalProvider>(

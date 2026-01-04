@@ -39,4 +39,8 @@ class DatabaseService {
   Future<List<JournalEntry>> getAllJournalEntries() async {
     return await isar.journalEntrys.where().sortByDateDesc().findAll();
   }
+
+  Future<void> deleteJournalEntry(int id) async {
+    await isar.writeTxn(() => isar.journalEntrys.delete(id));
+  }
 }

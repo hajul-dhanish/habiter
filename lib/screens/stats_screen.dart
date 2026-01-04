@@ -44,7 +44,7 @@ class StatsScreen extends ConsumerWidget {
                   _buildStatRow(
                     context,
                     'Completion Rate',
-                    '${(stats.completionRate * 100).toInt()}%',
+                    '${(stats.completionRate * 100).toStringAsFixed(3)}%',
                     Icons.check_circle_outline,
                   ),
                   const SizedBox(height: 24),
